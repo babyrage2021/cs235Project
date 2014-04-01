@@ -1,115 +1,177 @@
+// Author: Ryan Hoffman
+// Date: 3/28/14
+// Description: file that allows someone to multiply 2 binary numbers,
+//              using info.h to do so
+/* TODO:
+ * 		fix add and shift
+ * 		add time data
+ * 		gen file option?
+ * */
 #include <fstream>
- 
-char* getFilename(string type)
+#include "info.h"
+
+/* Description: gnerates all multiplication combinations for 4 upto and
+ *              including maxBits. does it in binary
+ * WARNING: SLOW ON A HARD DRIVE WITH A HIGH AMOUNT OF BITS AND ALSO
+ * SLOW WITH A SLOW CPU, AND USED TO FULL CREATES 1GB+ FILES
+ * BE CAREFUL WITH THIS FUNC!!!!!!!!!
+ * 	I am running it on a 4GHz CPU with a SSD so its fastish for me
+ * pre: none
+ * post: creates a file called filename
+ * param: the filename and the max amount of bits
+ * return: none*/
+void genFile(string filename, int startBit = MINBITS, 
+             int maxBits = MAXBITS)
 {
-  char filename[50];
+  vector<bool> a,b;
+  ofstream fout;
+  fout.open(filename.c_str());
+  int i = 0;
+  for(int currentBits = startBit; currentBits <= maxBits; currentBits++)
+  {
+    for(; i < pow(2,currentBits); i++)// i keeps its value for speed
+    for(int j = i; j < pow(2,currentBits); j++) 
+    {
+	  intToBin(a, i, currentBits);
+  	  intToBin(b, j, currentBits);
+      fout<<a<<' '<<b<<'\n';
+    }
+    
+    fout.flush();
+  }
+  
+  fout.close();
+  return;
+}
+
+/* Description: gets the filename from the user
+ * pre: none
+ * post: none
+ * param: type which is input or output to get an input or output file
+ * return: the filename */
+string getFilename(const string &type)
+{
+  string filename;
   cout<<"Please enter the name of the "<<type<<" file: ";
   cin>>filename;
   return filename;
 }
-// param order: inputFile.txt, outputFile.txt, <y/n> (for if it is a bin file
-//              or not) alg to use<1-3> ( 1 for booth, 2 for add&shift, 3 for both) 
+
+/* param order: (all optional) 
+ *               I WILL ONLY ASK FOR THE FIRST 3 things
+ * inputFile.txt
+ * outputFile.txt
+ * alg to use<1-3> ( 1 for booth, 2 for add&shift, 3 for both)
+ * <b/d/g> b=bin file d= decimal, g means generate a file, 
+ * number of bits to start generating
+ * max number of bits for the file to generate. defaults to 4*/
 int main(int argc, char* argv[])
 {
   // sets up the in/out put files and opens them
-  string filename, stuff;
-  char fileType = '\0';
-  int alg=0;
-  
+  string filename, stuff, stuff2, fileType;
+  int alg = 0, maxBits = MAXBITS, minBits = MINBITS;
   Info result;
   ifstream fin;
   ofstream fout;
+  clock_t t1;
+  t1 = clock();
   
   // input file setup
-  if(argc > 2)
-  {
-    fin.open(argv[2]);
-  }
+  if(argc > 1)
+	filename = argv[1];
   else
-  {
-    fin.open(getFilename("input"));
-  }
+    fin.open(getFilename("input").c_str());
   
   // output file setup
+  if(argc > 2)
+    fout.open(argv[2]);
+  else
+    fin.open(getFilename("output").c_str());
+  
   if(argc > 3)
-  {
-    fout.open(argv[3]);
-  }
+    alg = atoi(argv[3]);
   else
   {
-    fin.open(getFilename("output"));
+	  while(alg < 1 || alg > 3)
+	  { // selects which alg to use
+		cout<<"Which algorithm do you want to use: \n";
+		cout<<"\t 1. Booth's algorithm \n";
+		cout<<"\t 2. Add and Shift\n";
+		cout<<"\t 3. Both algs"<<endl;
+		cout<<"selection: ";
+		cin>>alg;
+	  }
   }
   
   if(argc > 4)
-  {
-    filetype = argv[4];
-  }
+    fileType = argv[4];
+  else
+    fileType = "b";
   
-  while(fileType != 'y' || fileType != 'n') // allows for input of files that are not in binary
-  {  // they still must be in in MULTIPLICAND MULTIPLIER format
-    cout<<"Are the numbers in binary already? <y/n> ";
-    cin>>fileType;
-  }
+  if(argc > 5 && atoi(argv[5]) >= MINBITS && atoi(argv[5]) <= MAXBITS )
+    minBits = atoi(argv[5]);
+    
+  if(argc > 6 && atoi(argv[6]) >= minBits && atoi(argv[6]) <= MAXBITS )
+    maxBits = atoi(argv[6]);
   
-  if(argc > 5)
-  {
-    alg = atoi(argv[5];//check
-  }
+  if(fileType == "g")
+    genFile(filename, minBits, maxBits);
   
-  while(alg < 1 || alg > 3)
-  { // selects which alg to use
-    cout<<"Which algorithm do you want to use: \n";
-    cout<<"\t 1. Booth's algorithm \n";
-    cout<<"\t 2. Add and Shift\n"
-    cout<<"\t 3. Both algs"<<endl;
-    cout<<"selection: ";
-    cin>>alg;
-  }
+  t1 = clock() - t1;
+  cout<<"File gen Time: "<<t1<<endl;
+  fout<<"File gen Time: "<<t1<<endl;
   
+  fin.open(filename.c_str());
   result.alg = alg;
-  // loops through the file. 
-  do
+  
+  // sets up a file for output and inport into a csv file. this is the
+  // format of the file and this is the header column
+  string format = "Algorithm, Size, Iterations, ";
+  format.append("Number of Additions and Subtractions, Multiplier, ");
+  format.append("Multiplier Decimal Value, ");
+  format.append(" 2's Complement, 2's Complement Decimal Value");
+  format.append("Multiplicand, Multiplicand Decimal Value, Result, ");
+  format.append("Result Decimal Value, Expected Decimal Value, ");
+  format.append("Execution Time (at bottom row)");
+  //cout<<format<<endl;
+  fout<<format<<endl;
+  format = " ";
+  
+  t1 = clock();
+  
+  fin>>stuff>>stuff2;
+  do // loops through the file.
   { 
-    // file input stuff here
-    if(fileType == 'y')
-    {
-      result.multiplicand.push_back(0); // sign bit
-      fin>>stuff;
-      setupBin(result.multiplicand, stuff)
-      
-      fin>>stuff;
-      setupBin(result.multiplier, stuff);
+    // file input stuff here. if it is binary
+    if(fileType == "b" || fileType == "g")
+    { 
+      setupBin(result.multiplicand, stuff);
+      setupBin(result.multiplier, stuff2);
     }
-    else
+    else if(fileType == "d")
     {// converts it to binary
-      fin>>stuff;
       convertDecimalBin(result.multiplicand, stuff);
-      
-      fin>>stuff;
-      convertDecimalBin(result.multiplier, stuff);
+      convertDecimalBin(result.multiplier, stuff2);
     }
-    
-    // setup stuff here
-    genTwoComp(result.twoComp, result.multiplier); // might need to change this
-    result.result.resize(2 * result.multiplicand.size());
-    
+     
     // runs the alg here
-    if(alg > 0)
-    {//booth
-      result.booths();
-      alg = result.alg;// changes inf.alg for output
-      cout<<result<<'\n';
-      fout<<result<<";";
+    if(alg == ADDSHIFT || alg == BOTH)
+    {// add and shift
+	  alg = result.alg;// changes inf.alg for output
+      result.alg = ADDSHIFT;
+      result.addAndShift();
+      //cout<<result<<'\n';
+      fout<<result<<'\n';
       result.alg = alg;
-      result.iterations = result.numAdd = 0;
     }
     
-    if(alg > 1)
-    {// add and shift
-      result.addShift();
-      alg = result.alg;// changes inf.alg for output
-      cout<<result<<'\n';
-      fout<<result<<";";
+    if(alg == BOOTHS || alg == BOTH)
+    {//booth
+	  alg = result.alg;// changes inf.alg for output
+      result.alg = BOOTHS;
+      result.boothsAlg();
+      //cout<<result<<'\n';
+      fout<<result<<'\n';
       result.alg = alg;
       result.iterations = result.numAdd = 0;
     }
@@ -118,7 +180,10 @@ int main(int argc, char* argv[])
     result.clear();
     
   }// do while loop
-  while(fin.eof() == false);
+  while(fin>>stuff>>stuff2);
+  t1 = clock() - t1;
+  cout<<"Time: "<<t1<<endl;
+  fout<<"Time: "<<t1<<endl;
   
   // closes files
   fin.close();
