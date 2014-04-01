@@ -117,16 +117,12 @@ int main(int argc, char* argv[])
   if(fileType == "g")
     genFile(filename, minBits, maxBits);
   
-  t1 = clock() - t1;
-  cout<<"File gen Time: "<<t1<<endl;
-  fout<<"File gen Time: "<<t1<<endl;
-  
   fin.open(filename.c_str());
   result.alg = alg;
   
   // sets up a file for output and inport into a csv file. this is the
   // format of the file and this is the header column
-  string format = "Algorithm, Size, Iterations, ";
+ /* string format = "Algorithm, Size, Iterations, ";
   format.append("Number of Additions and Subtractions, Multiplier, ");
   format.append("Multiplier Decimal Value, ");
   format.append(" 2's Complement, 2's Complement Decimal Value");
@@ -135,10 +131,11 @@ int main(int argc, char* argv[])
   format.append("Execution Time (at bottom row)");
   //cout<<format<<endl;
   fout<<format<<endl;
-  format = " ";
-  
+  format = " ";*/
+  fout<<"Alg, Length, Amount, Time, Time Per"<<endl; 
   t1 = clock();
-  
+  unsigned int counter = 0;
+  int prevSize = 0;
   fin>>stuff>>stuff2;
   do // loops through the file.
   { 
@@ -161,7 +158,7 @@ int main(int argc, char* argv[])
       result.alg = ADDSHIFT;
       result.addAndShift();
       //cout<<result<<'\n';
-      fout<<result<<'\n';
+      //fout<<result<<'\n';
       result.alg = alg;
     }
     
@@ -171,19 +168,31 @@ int main(int argc, char* argv[])
       result.alg = BOOTHS;
       result.boothsAlg();
       //cout<<result<<'\n';
-      fout<<result<<'\n';
+      //fout<<result<<'\n';
       result.alg = alg;
       result.iterations = result.numAdd = 0;
     }
     
+    if(prevSize > 0 && prevSize < result.multiplicand.size())
+    {
+	  t1 = clock() - t1;
+	  fout<<result.alg<<", "<<result.size<<", "<<counter<<", "<<t1<<", "
+	      <<(float)(t1/counter)<<endl;
+	  t1 = clock();
+	  counter = 0;
+	}
+    
+    prevSize = result.multiplicand.size();
+    
     //resets everything
     result.clear();
-    
+    counter++;
   }// do while loop
   while(fin>>stuff>>stuff2);
   t1 = clock() - t1;
-  cout<<"Time: "<<t1<<endl;
-  fout<<"Time: "<<t1<<endl;
+  //cout<<"Time: "<<t1<<endl;
+ 
+  fout<<"Length:"<<result.multiplicand.size()<<", Time: "<<t1<<", amount:"<<endl;
   
   // closes files
   fin.close();
